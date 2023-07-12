@@ -30,11 +30,13 @@ function deps_installation() {
 
     # Install nvm and then node 14
     if [ "$is_arm" = true ]; then
-        sudo -u $1 bash -c "cd /home/${1} && wget https://nodejs.org/download/release/v14.21.3/node-v14.21.3-linux-arm64.tar.xz && tar -xf node-v14.21.3-linux-arm64.tar.xz && sudo cp -r node-v14.21.3-linux-arm64/* /usr/local/"
+        sudo -u $1 bash -c "cd /home/${1} && wget https://nodejs.org/download/release/v16.20.1/node-v16.20.1-linux-arm64.tar.xz && tar -xf node-v16.20.1-linux-arm64.tar.xz && sudo cp -r node-v16.20.1-linux-arm64/* /usr/local/"
     else
-        sudo -u $1 bash -c "cd /home/${1} && wget https://nodejs.org/download/release/v14.21.3/node-v14.21.3-linux-x64.tar.xz && tar -xf node-v14.21.3-linux-x64.tar.xz && sudo cp -r node-v14.21.3-linux-x64/* /usr/local/"
+        sudo -u $1 bash -c "cd /home/${1} && wget https://nodejs.org/download/release/v16.20.1/node-v16.20.1-linux-arm64.tar.xz && tar -xf node-v16.20.1-linux-x64.tar.xz && sudo cp -r node-v16.20.1-linux-x64/* /usr/local/"
     fi
     sudo -u $1 bash -c "sudo npm install -g yarn"
+
+    # sudo -u $1 bash -c "npm config set python python3"
 
     # Install wkhtmltopdf
     sudo apt-get install xvfb libfontconfig wkhtmltopdf -y
@@ -102,6 +104,156 @@ function erpnext_install() {
     # bench --site $2 install-app erpnext
 }
 
+cat <<"EOF"
+----------------------------------------------------------------
+  _____   ____    ____    _   _                 _
+ | ____| |  _ \  |  _ \  | \ | |   ___  __  __ | |_
+ |  _|   | |_) | | |_) | |  \| |  / _ \ \ \/ / | __|
+ | |___  |  _ <  |  __/  | |\  | |  __/  >  <  | |_
+ |_____| |_| \_\ |_|     |_| \_|  \___| /_/\_\  \__|
+
+  __  __
+ |  \/  |   __ _   _ __     __ _    __ _    ___   _ __
+ | |\/| |  / _` | | '_ \   / _` |  / _` |  / _ \ | '__|
+ | |  | | | (_| | | | | | | (_| | | (_| | |  __/ | |
+ |_|  |_|  \__,_| |_| |_|  \__,_|  \__, |  \___| |_|
+                                   |___/
+
+----------------------------------------------------------------
+EOF
+
+echo
+echo "Please select 1-2 to manage ERPNext"
+echo
+echo "1). Update SSL for sites"
+echo "2). Install a new site"
+echo "3). Install and Setup ERPNext"
+echo
+
+read -p "Please enter your choice: " man_choice
+if [ $man_choice == 1 ]; then
+cat <<"EOF"
+-------------------------------------
+/   ____ ____  _                     \
+/  / ___/ ___|| |                    \
+/  \___ \___ \| |                    \
+/   ___) |__) | |___                 \
+/  |____/____/|_____|                \
+/                                    \
+/   _   _           _       _        \
+/  | | | |_ __   __| | __ _| |_ ___  \
+/  | | | | '_ \ / _` |/ _` | __/ _ \ \
+/  | |_| | |_) | (_| | (_| | ||  __/ \
+/   \___/| .__/ \__,_|\__,_|\__\___| \
+/        |_|                         \
+-------------------------------------
+EOF
+
+    echo "Update SSL only if ${bold}CERTBOT${normal} is installed"
+    if ! command -v certbot > /dev/null 2>&1; then
+        echo "Certbot not found. Exiting..."
+        exit 1
+    fi
+
+    sudo certbot --nginx #<<EOF
+
+elif [ $man_choice == 2 ]; then
+cat <<"EOF"
+-------------------------------------------------------------------------------
+/   _   _                       ____    _   _                                  \
+/  | \ | |   ___  __      __   / ___|  (_) | |_    ___                         \
+/  |  \| |  / _ \ \ \ /\ / /   \___ \  | | | __|  / _ \                        \
+/  | |\  | |  __/  \ V  V /     ___) | | | | |_  |  __/                        \
+/  |_| \_|  \___|   \_/\_/     |____/  |_|  \__|  \___|                        \
+/                                                                              \
+/   ___                 _             _   _           _     _                  \
+/  |_ _|  _ __    ___  | |_    __ _  | | | |   __ _  | |_  (_)   ___    _ __   \
+/   | |  | '_ \  / __| | __|  / _` | | | | |  / _` | | __| | |  / _ \  | '_ \  \
+/   | |  | | | | \__ \ | |_  | (_| | | | | | | (_| | | |_  | | | (_) | | | | | \
+/  |___| |_| |_| |___/  \__|  \__,_| |_| |_|  \__,_|  \__| |_|  \___/  |_| |_| \
+/                                                                              \
+-------------------------------------------------------------------------------
+EOF
+    multi_tenancy=true
+
+    while :
+    do
+        while :
+        do
+            read -p $'Please enter the username that is used to install ERPNext: \n' username
+            egrep "^$username" /etc/passwd >/dev/null
+            if [[ $? -ne 0 ]]; then
+                echo "User not found!"
+                continue
+            elif [ -z "$username" ]; then
+                continue
+            else
+                break
+            fi
+        done
+        while :
+        do
+            read -p $'Please enter the site name: \n' new_sitename
+            [ -z "$new_sitename" ] && continue || break
+        done
+
+        while :
+        do
+            read -s -p $'Please enter the ERPNext admin password: \n' new_adminpassword
+            [ -z "$new_adminpassword" ] && continue || break
+        done
+        while :
+        do
+            read -s -p $'Please enter the MariaDB root password: \n' mysql_root_password
+            [ -z "$new_adminpassword" ] && continue || break
+        done
+        while :
+        do
+            read -p $'Please enter Absolute path to Frappe folder (should include the folder name as well): \n' abs_path
+            sudo -u $username ls $abs_path/sites/common_site_config.json
+            if [[ $? -ne 0 ]]; then
+                echo "No ERPNext installation found at this PATH!"
+                echo "Please Enter a valid PATH"
+                continue
+            elif [ -z "$abs_path" ]; then
+                continue
+            else
+                break
+            fi
+
+        done
+        # if [ "${is_arm}" = true ]; then
+        #     echo "port 11000" | sudo tee -a /etc/redis/redis.conf
+        #     sudo systemctl restart redis-server
+        # fi
+
+        sudo -u $username bash -c "cd ${abs_path} && bench config dns_multitenant on"
+        sudo -u $username bash -c "cd ${abs_path} && bench new-site ${new_sitename} --db-root-password ${mysql_root_password} --admin-password ${new_adminpassword}"
+        sudo -u $username bash -c "cd ${abs_path} && bench --site ${new_sitename} install-app erpnext"
+
+        # if [ "${is_arm}" = true ]; then
+        #     sudo sed -i 's/port 11000//g' /etc/redis/redis.conf
+        #     sudo systemctl restart redis-server
+        # fi
+
+        echo "Do you want to add more sites?"
+        read -p "Please enter ${bold}Y${normal} to add more site or ${bold}any key${normal} to continue: " is_more_sites
+
+        if [[ "${is_more_sites,,}" == "${accept,,}" ]]; then
+            continue
+        else
+            break
+        fi
+    done
+    sudo -u $username bash -c "cd ${abs_path} && bench setup nginx"
+    sudo systemctl reload nginx
+    sudo certbot --nginx
+
+    echo
+    echo "${bold}Installation Finished! Enjoy...${normal}"
+    echo
+
+elif [ $man_choice == 3 ]; then
 cat << "EOF"
 -------------------------------------------------------------------------
 /    _____ ______ ______  _   _              _                          \
@@ -366,6 +518,11 @@ sudo useradd -m -s /bin/bash -p "$pass" "$username"
 sudo usermod -aG sudo $username
 echo "${username} ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR="tee -a" visudo
 
+# Alias python
+# sudo -u $username echo 'alias python="python3"' >> /home/$username/.bashrc
+#sudo -u $username bash -c "cd /home/${username} && source .bashrc"
+# export PYTHON=python3
+
 cat << "EOF"
 -----------------------------------------------------------------
 |    ____           __         __ __                          
@@ -506,9 +663,11 @@ fi
 
 # Install certbot
 sudo snap install core; sudo snap refresh core
-sudo snap install --classic certbot
-sudo ln -s /snap/bin/certbot /usr/bin/certbot
-
+if ! command -v certbot > /dev/null 2>&1; then
+    echo "Certbot not found. Installing..."
+    sudo snap install --classic certbot
+    sudo ln -s /snap/bin/certbot /usr/bin/certbot
+fi
 # Generate certificate
 sudo certbot --nginx #<<EOF
 #$mail_address
@@ -588,3 +747,6 @@ fi
 # Revert the privileges
 sudo sed -i "s/${username} ALL=(ALL) NOPASSWD:ALL//g" /etc/sudoers
 # echo "${username} ALL=(ALL:ALL) ALL" | sudo EDITOR="tee -a" visudo
+else
+    echo -e "${RED}Invalid Choice${NC}"
+fi
